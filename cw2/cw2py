@@ -1,0 +1,317 @@
+from tkinter import ttk
+import json
+import base64
+from unittest import result
+import re
+import string
+import random
+import csv
+import json
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from tkinter import messagebox
+
+import tkinter as tk
+from tkinter import ttk
+import json
+import base64
+import re
+import random
+import string
+import csv
+import json
+from tkinter import filedialog
+
+def export_csv():
+    # Open file dialog to choose export location and name
+    export_file_path = filedialog.asksaveasfilename(defaultextension='.csv', filetypes=[('CSV file', '*.csv')])
+
+    # Load passwords from file
+    try:
+        with open('passwords.json', 'r') as file:
+            passwords = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        tk.messagebox.showerror('Error', 'No passwords found or file corrupted!')
+        return
+
+    # Export passwords to CSV file
+    try:
+        with open(export_file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Website', 'Username', 'Password'])
+            for password in passwords:
+                website = password.get('website', '')
+                username = password.get('username', '')
+                encoded_password = password.get('password', '')
+                decoded_password = base64.b64decode(encoded_password.encode()).decode()
+                writer.writerow([website, username, decoded_password])
+        tk.messagebox.showinfo('Success', 'Passwords exported successfully!')
+    except Exception as e:
+        tk.messagebox.showerror('Error', f'Error exporting passwords: {str(e)}')
+
+
+
+def generate_password():
+    characters = string.ascii_letters + string.digits + string.punctuation
+    password = ""
+    for i in range(16):
+        password += random.choice(characters)
+    password_generator_entry.delete(0, tk.END)
+    password_generator_entry.insert(0, password)
+
+
+def retrieve_password():
+    website = website_search_entry.get()
+
+    # Load existing passwords from file or create an empty list
+    try:
+        with open("passwords.json", "r") as file:
+            passwords = json.load(file)
+    except FileNotFoundError:
+        passwords = []
+
+    # Find the password for the given website and display it
+    for password in passwords:
+        if password["website"] == website:
+            # Decode the password using Base64
+            encoded_password = password['password']
+            decoded_password = base64.b64decode(encoded_password.encode()).decode()
+            print(decoded_password)
+
+            # Reverse the ROT13 transformation
+            original_password = ""
+            for c in decoded_password:
+                if c.isalpha():
+                    if c.isupper():
+                        original_password += chr((ord(c) - 65 - 13) % 26 + 65)
+                    else:
+                        original_password += chr((ord(c) - 97 - 13) % 26 + 97)
+                else:
+                    original_password += c
+
+            # Show the original password
+            messagebox.showinfo("Password", f"Username: {password['username']}\nPassword: {original_password}")
+            break
+    else:
+        messagebox.showerror("Error", "No password found for the given website.")
+
+    # Clear the input field
+    website_entry.delete(0, tk.END)
+
+
+# Define ROT13 function for manual implementation
+def rot13(s):
+    """
+    Applies ROT13 transformation to string s.
+    """
+    result = ''
+    for c in s:
+        if 'a' <= c <= 'z':
+            # Rotate lowercase letters 13 positions
+            result += chr((ord(c) - ord('a') + 13) % 26 + ord('a'))
+        elif 'A' <= c <= 'Z':
+            # Rotate uppercase letters 13 positions
+            result += chr((ord(c) - ord('A') + 13) % 26 + ord('A'))
+        else:
+            # Leave non-alphabetic characters unchanged
+            result += c
+    print(result)
+    return result
+
+def save_password():
+    # Get values of website, username, and password from input fields
+    website = website_entry.get()
+    username = user_name_entry.get()
+    password = password_entry.get()
+
+    # Check if all fields are filled
+    if not website or not username or not password:
+        messagebox.showerror("Error", "All fields are required!")
+        return
+
+    # Check if website name is valid using regular expression
+    pattern = r"^([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$"
+    if not re.match(pattern, website):
+        messagebox.showerror("Error", "Invalid website URL!")
+        return
+
+    # Apply ROT13 transformation to the password
+    password_rot13 = rot13(password)
+
+    # Encode the password using Base64
+    encoded_password = base64.b64encode(password_rot13.encode()).decode()
+
+    # Load existing passwords from file or create an empty list if file doesn't exist
+    try:
+        with open("passwords.json", "r") as file:
+            passwords = json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        passwords = []
+
+    # Add new password to the list and save it to the file
+    passwords.append({"website": website, "username": username, "password": encoded_password})
+    with open("passwords.json", "w") as file:
+        json.dump(passwords, file)
+
+    # Show success message and clear input fields
+    messagebox.showinfo("Success", "Password saved successfully!")
+    website_entry.delete(0, tk.END)
+    user_name_entry.delete(0, tk.END)
+    password_entry.delete(0, tk.END)
+
+
+def show_sign_up():
+    main_frame.grid_forget()
+    insert_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        insert_frame.rowconfigure(i, minsize=50)
+    for i in range(12):
+        insert_frame.columnconfigure(i, minsize=50)
+
+def show_log_in():
+    main_frame.grid_forget()
+    retrive_pass_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        retrive_pass_frame.rowconfigure(i, minsize=50)
+    for i in range(12):
+        retrive_pass_frame.columnconfigure(i, minsize=50)
+
+def back_to_main():
+    insert_frame.grid_forget()
+    retrive_pass_frame.grid_forget()
+    main_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+    for i in range(12):
+        main_frame.rowconfigure(i, minsize=50)
+    for i in range(12):
+        main_frame.columnconfigure(i, minsize=50)
+        
+root = tk.Tk()
+root.geometry("600x600")
+root.update_idletasks()
+x = (root.winfo_screenwidth() - root.winfo_reqwidth()) / 3
+y = (root.winfo_screenheight() - root.winfo_reqheight()) / 4.5
+root.geometry("+%d+%d" % (x, y))
+
+main_frame = tk.Frame(root, bg="#fab9d3")
+main_frame.grid(row=0, column=0, rowspan=12, columnspan=12, sticky="nsew")
+for i in range(12):
+    main_frame.rowconfigure(i, minsize=50)
+for i in range(12):
+    main_frame.columnconfigure(i, minsize=50)
+
+project_text = ttk.Label(main_frame, text="Simple Password Manager", font=("Helvetica", 30), foreground="white", background="#fab9d3")
+project_text.grid(row=0, column=1, columnspan=5, pady=20, padx=10)
+
+project_text = ttk.Label(main_frame, text="By", font=("Helvetica", 20), foreground="white", background="#fab9d3")
+project_text.grid(row=7, column=1, columnspan=5, pady=20, padx=10)
+
+project_text = ttk.Label(main_frame, text="Subishma khadka", font=("Helvetica", 30), foreground="white", background="#fab9d3")
+project_text.grid(row=8, column=1, columnspan=5, pady=20, padx=10)
+
+
+back_button = tk.Button(main_frame, text="Password Area", command=show_sign_up, font=("Helvetica", 13), background="#fae0e4", 
+                        foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="#1985a1")
+back_button.grid(row=3, column=3,sticky="s", padx=0, pady=10)
+back_button.config(width=15)
+
+back_button = tk.Button(main_frame, text="Search Pass", command=show_log_in, font=("Helvetica", 13), background="#fae0e4", 
+                        foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="#c5c3c6")
+back_button.grid(row=4, column=3,sticky="s", padx=0, pady=10)
+back_button.config(width=15)
+
+back_button = tk.Button(main_frame, text="Exit", command=root.quit, font=("Helvetica", 13), background="#fae0e4", 
+                        foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="red")
+back_button.grid(row=5, column=3, sticky="s", padx=0, pady=10)
+back_button.config(width=15)
+
+
+style = ttk.Style()
+style.configure("Round.TEntry", fieldbackground="#ffffff", background="transparent", 
+                 bd=5, relief="flat", padding=2, borderwidth=2,
+                 highlightcolor="#597678", highlightbackground="#597678", 
+                 borderradius=10)
+
+
+insert_frame = tk.Frame(root, bg="#fab9d3")
+
+sign_up_text = ttk.Label(insert_frame, text="Insert Password", font=("Helvetica", 25), foreground="white", background="#fab9d3")
+sign_up_text.grid(row=0, column=2, columnspan=1, pady=30, padx=50, sticky="nw")
+
+website_label = tk.Label(insert_frame, text="Website", font=("Helvetica", 14), foreground="white", background="#fab9d3")
+website_entry = ttk.Entry(insert_frame, width=25, font=("Helvetica", 16), foreground="#fab9d3", style="Round.TEntry", background='gray')
+website_entry.configure(background='gray')
+
+
+
+website_label.grid(row=1, column=1, padx=20, pady=10, sticky="W")
+website_entry.grid(row=1, column=2, padx=10, pady=10, sticky="W")
+
+
+user_name_label = tk.Label(insert_frame, text="User Name", font=("Helvetica", 14), foreground="white", background="#fab9d3")
+user_name_entry = ttk.Entry(insert_frame, width=25, font=("Helvetica", 16), foreground="#fab9d3", style="Round.TEntry")
+# user_name_entry.config(bd=3, relief="sunken")
+
+user_name_label.grid(row=2, column=1, padx=20, pady=10, sticky="W")
+user_name_entry.grid(row=2, column=2, padx=10, pady=10, sticky="W")
+
+
+
+password_label = tk.Label(insert_frame, text="Password", font=("Helvetica", 14), foreground="white", background="#fab9d3")
+password_entry = ttk.Entry(insert_frame, show="*", width=25, font=("Helvetica", 16), foreground="#fab9d3", style="Round.TEntry")
+# password_entry.config(bd=3, relief="sunken")
+
+password_label.grid(row=3, column=1, padx=20, pady=10, sticky="W")
+password_entry.grid(row=3, column=2, padx=10, pady=10, sticky="W")
+
+
+
+
+submit_button = tk.Button(insert_frame, text="Submit", command=save_password, font=("Helvetica", 12), background="#fae0e4", 
+                          foreground="#ff5d8f", relief="raised", bd=3,activebackground="#144552",activeforeground="#1985a1")
+submit_button.grid(row=4, column=2,sticky="e",pady=40)
+submit_button.config(width=10)
+
+
+password_generator_entry = ttk.Entry(insert_frame, width=25, font=("Helvetica", 16), foreground="#fab9d3", style="Round.TEntry")
+# password_entry.config(bd=3, relief="sunken")
+password_generator_entry.grid(row=5, column=1,columnspan=3, padx=10, pady=10, sticky="W")
+
+
+
+generate_button = tk.Button(insert_frame, text="Generate", command=generate_password, font=("Helvetica", 12), background="#fae0e4", 
+                          foreground="#ff5d8f", relief="raised", bd=3,activebackground="#144552",activeforeground="#1985a1")
+generate_button.grid(row=5, column=2,sticky="e",pady=20)
+generate_button.config(width=10)
+
+
+back_button = tk.Button(insert_frame, text="Back", command=back_to_main, font=("Helvetica", 12), background="#fae0e4", 
+                        foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="red")
+back_button.grid(row=8, column=1, sticky="nw",padx=10,pady=10)
+back_button.config(width=8)
+
+retrive_pass_frame = tk.Frame(root, bg="#fab9d3")
+
+log_in_text = ttk.Label(retrive_pass_frame, text="Passwords", font=("Travelast", 25), foreground="white", background="#fab9d3")
+log_in_text.grid(row=0, column=2, columnspan=1, pady=30, padx=50)
+
+
+website_search_label = tk.Label(retrive_pass_frame, text="Website", font=("Helvetica", 14), foreground="white", background="#fab9d3")
+website_search_entry = ttk.Entry(retrive_pass_frame, width=25, font=("Helvetica", 16), foreground="#fab9d3", style="Round.TEntry")
+# email_entry.config(bd=3, relief="sunken")
+
+website_search_label.grid(row=2, column=1, padx=20, pady=10, sticky="W")
+website_search_entry.grid(row=2, column=2, padx=10, pady=10, sticky="W")
+
+
+
+log_in_button = tk.Button(retrive_pass_frame, text="Search", command=retrieve_password, font=("Helvetica", 12), background="#fae0e4", 
+                          foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="#c5c3c6")
+log_in_button.grid(row=4, column=2, padx=10,pady=50)
+log_in_button.config(width=8)
+
+
+back_button = tk.Button(retrive_pass_frame, text="Back", command=back_to_main, font=("Helvetica", 12), background="#fae0e4", 
+                        foreground="#ff5d8f", relief="raised", bd=3, activebackground="#144552",activeforeground="red")
+back_button.grid(row=8, column=1, sticky="w",padx=10,pady=10)
+back_button.config(width=8)
+root.mainloop()
